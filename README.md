@@ -2,6 +2,7 @@
 2024년도 2학기 실전기계학습 competition Ai Model 
 
 Dataset -  https://www.kaggle.com/competitions/2024-2-machine-learning-in-practice/data
+
 BaseLine code - https://colab.research.google.com/drive/1VbMAAdRYYJZZ_fmzGeyO23yTpOtI9TNM#scrollTo=BBDEeBWSEoSR
 
 ### directory
