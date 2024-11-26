@@ -17,6 +17,7 @@ def main():
 
     model_ft = ResNet18(num_classes = 10).cuda()
     checkParams(model_ft)
+    model_ft = model_ft.to(device)
     torchsummary.summary(model_ft, (3,256,256))
     
     # Optimization Loss function
@@ -31,7 +32,8 @@ def main():
     train_model(model_ft, criterion, optimizer_ft, exp_lr_scheduler, device, num_epochs=training_epochs)
 
     # testing the model
-    predictions = evaluate(model_ft, ResNet18(num_classes=10), criterion, device)
-
+    predictions = evaluate(model_ft, ResNet18(num_classes=10), device, criterion)
+    print(predictions)
+    
 if __name__ == '__main__':
     main()
