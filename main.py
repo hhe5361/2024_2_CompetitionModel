@@ -5,10 +5,9 @@ import random
 import torch
 from torch import nn, optim
 from torch.optim import lr_scheduler
-from model import EfficientNet
 from utils import checkParams, train_model, evaluate
 from optimTarget import learning_rate, training_epochs, schedule_steps
-
+from model import VGG11
 seed = 3334
 torch.manual_seed(seed)
 torch.cuda.manual_seed(seed)
@@ -19,8 +18,8 @@ np.random.seed(seed)
 random.seed(seed)
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-model_ft = EfficientNet(num_classes=10).cuda()
-test_model = EfficientNet(num_classes=10).cuda()
+model_ft = VGG11().cuda()
+test_model = VGG11().cuda()
 
 checkParams(model_ft)
 print(device)
