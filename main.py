@@ -1,34 +1,23 @@
 # importing all the libraries we need
-from __future__ import print_function, division
-import numpy as np
-import random
 import torch
 from torch import nn, optim
 from torch.optim import lr_scheduler
-from utils import checkParams, train_model, evaluate
 from optimTarget import learning_rate, training_epochs, schedule_steps
 from model.model import EfficientNet
 from model.utils import get_model_params
-
-seed = 3334
-torch.manual_seed(seed)
-torch.cuda.manual_seed(seed)
-torch.cuda.manual_seed_all(seed) 
-torch.backends.cudnn.deterministic = True
-torch.backends.cudnn.benchmark = False
-np.random.seed(seed)
-random.seed(seed)
-
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+from utils import checkParams, train_model, evaluate
 
 # 모델 매개변수 가져오기
-blocks_args, global_params = get_model_params('efficientnet-b0', override_params={'include_top': False})
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+model_ft = EfficientNet.from_name("efficientnet-b0")
+test_model = EfficientNet.from_name("efficientnet-b0")
 
-model_ft = EfficientNet(blocks_args, global_params).cuda()
-model_ft._fc = nn.Linear(global_params['width_coefficient'] * 1280, 10)  
+num_ftrs = model_ft._fc.in_features
+model_ft._fc = nn.Linear(num_ftrs, 10)
+test_model._fc = nn.Linear(num_ftrs, 10)
 
-test_model = EfficientNet(blocks_args, global_params).cuda()
-test_model._fc = nn.Linear(global_params['width_coefficient'] * 1280, 10) 
+model_ft= model_ft.cuda()
+test_model = test_model.cuda()
 
 checkParams(model_ft)
 print(device)
