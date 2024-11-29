@@ -3,9 +3,9 @@ import numpy as np
 import time
 import torch
 import copy
-import pandas as pd
 import itertools
 from dataaug import train_loader, train_data, test_loader
+import pandas as pd
 
 def checkParams(model):
     pytorch_total_params = sum(p.numel() for p in model.parameters())

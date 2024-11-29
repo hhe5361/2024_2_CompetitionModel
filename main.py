@@ -1,26 +1,23 @@
 # importing all the libraries we need
-from __future__ import print_function, division
-import numpy as np
-import random
 import torch
 from torch import nn, optim
 from torch.optim import lr_scheduler
-from model import EfficientNet
-from utils import checkParams, train_model, evaluate
 from optimTarget import learning_rate, training_epochs, schedule_steps
+from model.model import EfficientNet
+from model.utils import get_model_params
+from utils import checkParams, train_model, evaluate
 
-seed = 3334
-torch.manual_seed(seed)
-torch.cuda.manual_seed(seed)
-torch.cuda.manual_seed_all(seed) 
-torch.backends.cudnn.deterministic = True
-torch.backends.cudnn.benchmark = False
-np.random.seed(seed)
-random.seed(seed)
-
+# 모델 매개변수 가져오기
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-model_ft = EfficientNet(num_classes=10).cuda()
-test_model = EfficientNet(num_classes=10).cuda()
+model_ft = EfficientNet.from_name("efficientnet-b0")
+test_model = EfficientNet.from_name("efficientnet-b0")
+
+num_ftrs = model_ft._fc.in_features
+model_ft._fc = nn.Linear(num_ftrs, 10)
+test_model._fc = nn.Linear(num_ftrs, 10)
+
+model_ft= model_ft.cuda()
+test_model = test_model.cuda()
 
 checkParams(model_ft)
 print(device)
