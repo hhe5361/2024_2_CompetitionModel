@@ -7,7 +7,6 @@ from model.model import EfficientNet
 from model.utils import get_model_params
 from utils import checkParams, train_model, evaluate
 
-# 모델 매개변수 가져오기
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 model_ft = EfficientNet.from_name("efficientnet-b0")
 test_model = EfficientNet.from_name("efficientnet-b0")
