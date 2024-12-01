@@ -21,22 +21,19 @@ train_transform = transforms.Compose([
     transforms.RandomHorizontalFlip(),
     transforms.RandomVerticalFlip(),
     transforms.ColorJitter(brightness=0.2, contrast=0.2),
+    transforms.GaussianBlur(kernel_size=5),  # 가우시안 블러 추가
     transforms.ToTensor(),
     transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
 ])
 
 val_transform = transforms.Compose([
-    transforms.CenterCrop(224),
-    transforms.RandomRotation(180),
-    transforms.RandomHorizontalFlip(),
-    transforms.RandomVerticalFlip(),
-    transforms.ColorJitter(brightness=0.2, contrast=0.2),
+    transforms.Resize(224),
     transforms.ToTensor(),
     transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
     ])
 
 test_transform = transforms.Compose([
-
+        transforms.Resize(224),
         transforms.ToTensor(),
         transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
     ])

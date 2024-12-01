@@ -1,34 +1,30 @@
 # importing all the libraries we need
-from __future__ import print_function, division
-import numpy as np
-import random
 import torch
 from torch import nn, optim
 from torch.optim import lr_scheduler
-from utils import checkParams, train_model, evaluate
 from optimTarget import learning_rate, training_epochs, schedule_steps
-from model.model import EfficientNet
-from model.utils import get_model_params
-
-seed = 3334
-torch.manual_seed(seed)
-torch.cuda.manual_seed(seed)
-torch.cuda.manual_seed_all(seed) 
-torch.backends.cudnn.deterministic = True
-torch.backends.cudnn.benchmark = False
-np.random.seed(seed)
-random.seed(seed)
-
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
+from utils import checkParams, train_model, evaluate
+from torchvision.models import efficientnet_b0 as EfficientNet
 # 모델 매개변수 가져오기
-blocks_args, global_params = get_model_params('efficientnet-b0', override_params={'include_top': False})
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+model_ft = EfficientNet(weights = None)
+#test_model = EfficientNet(weights = None)
 
-model_ft = EfficientNet(blocks_args, global_params).cuda()
-model_ft._fc = nn.Linear(global_params['width_coefficient'] * 1280, 10)  
+# 마지막 분류기 계층에 접근
+num_ftrs = model_ft.classifier[1].in_features
 
-test_model = EfficientNet(blocks_args, global_params).cuda()
-test_model._fc = nn.Linear(global_params['width_coefficient'] * 1280, 10) 
+# 새로운 분류기 생성 및 교체
+model_ft.classifier = nn.Sequential(
+    nn.Dropout(p=0.2, inplace=True),
+    nn.Linear(num_ftrs, 10)
+)
+# test_model.classifier = nn.Sequential(
+#     nn.Dropout(p=0.2, inplace=True),
+#     nn.Linear(num_ftrs, 10)
+#)
+
+model_ft = model_ft.cuda()
+# test_model = test_model.cuda()
 
 checkParams(model_ft)
 print(device)
@@ -47,4 +43,4 @@ exp_lr_scheduler = lr_scheduler.StepLR(optimizer_ft, step_size=schedule_steps, g
 model_ft, epc, trn, val = train_model(model = model_ft, criterion= criterion, optimizer= optimizer_ft, scheduler= exp_lr_scheduler, device= device , num_epochs=training_epochs)
 
 # Evaluating the model
-predictions = evaluate(model=model_ft, test_model=test_model, criterion=criterion, device=device)
+predictions = evaluate(model=model_ft, criterion=criterion, device=device)

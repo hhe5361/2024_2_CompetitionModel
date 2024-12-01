@@ -3,9 +3,9 @@ import numpy as np
 import time
 import torch
 import copy
-import pandas as pd
 import itertools
 from dataaug import train_loader, train_data, test_loader
+import pandas as pd
 
 def checkParams(model):
     pytorch_total_params = sum(p.numel() for p in model.parameters())
@@ -103,16 +103,13 @@ def train_model(model, criterion, optimizer, scheduler, device,  num_epochs=25):
     model.load_state_dict(best_model_wts)
     return model, epoch_lst, trn_metadata, val_metadata
 
-def evaluate(model, device, test_model, criterion):
+def evaluate(model, device, criterion):
     count = 0
     all_count = 0
     model.eval()  # setting the model to evaluate mode
     preds = []
     gts = []
 
-    # 저장경로는 변경하셔도 됩니다.
-    test_model.load_state_dict(torch.load('model_best.pt'))
-    test_model.to(device)  # 모델을 GPU로 이동
 
     for inputs, labels in test_loader:
         inputs = inputs.to(device)
@@ -120,7 +117,7 @@ def evaluate(model, device, test_model, criterion):
 
         # predicting
         with torch.no_grad():
-            outputs = test_model(inputs)
+            outputs = model(inputs)
             _, pred = torch.max(outputs, dim=1)  # 예측값
             preds.append(pred.cpu())  # GPU -> CPU 이동 후 저장
             gts.append(labels.cpu())  # 정답값도 저장

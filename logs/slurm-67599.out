@@ -1,0 +1,6 @@
+Number of parameters: 4020358
+cuda:0
+--------------------------------------------------
+Epoch 1/50
+train Loss: 1.3938 Acc: 0.4997
+slurmstepd: error: *** JOB 67599 ON moana-r5 CANCELLED AT 2024-11-29T13:09:02 ***
