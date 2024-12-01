@@ -1,3 +1,3 @@
 best val acc : 86%
-test acc : 11%
+test acc : 84%
 ?
