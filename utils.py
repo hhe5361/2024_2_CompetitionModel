@@ -103,33 +103,32 @@ def train_model(model, criterion, optimizer, scheduler, device,  num_epochs=25):
     model.load_state_dict(best_model_wts)
     return model, epoch_lst, trn_metadata, val_metadata
 
-def evaluate(model, device, test_model, criterion):
+def evaluate(test_model, device):
     count = 0
     all_count = 0
-    model.eval()  # setting the model to evaluate mode
     preds = []
-    gts = []
 
     # 저장경로는 변경하셔도 됩니다.
     test_model.load_state_dict(torch.load('model_best.pt'))
     test_model.to(device)  # 모델을 GPU로 이동
-
+    test_model.eval()  # setting the model to evaluate mode
     for inputs, labels in test_loader:
+
+        #아래는 제출 시 삭제해야 할 코드임.
         inputs = inputs.to(device)
-        labels = labels.to(device)  # labels도 GPU로 이동
+        labels = labels.to(device)  
 
         # predicting
         with torch.no_grad():
             outputs = test_model(inputs)
             _, pred = torch.max(outputs, dim=1)  # 예측값
             preds.append(pred.cpu())  # GPU -> CPU 이동 후 저장
-            gts.append(labels.cpu())  # 정답값도 저장
 
-            # 정확도 계산
+            # 정확도 계산 -> 삭제해야 할 부분
             count += (pred == labels).sum().item()
         all_count += labels.size(0)  # 현재 배치의 샘플 수 추가
 
-    # 최종 정확도 출력
+    # 최종 정확도 출력 - 삭제 해야 할 부분
     accuracy = count / all_count
     print(f'Accuracy: {accuracy:.4f}')
 
