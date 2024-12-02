@@ -4,8 +4,9 @@ import time
 import torch
 import copy
 import itertools
-from dataaug import train_loader, train_data, test_loader
+from dataaug import train_loader, test_loader, val_loader
 import pandas as pd
+
 
 def checkParams(model):
     pytorch_total_params = sum(p.numel() for p in model.parameters())
@@ -14,7 +15,7 @@ def checkParams(model):
         print('Your model has the number of parameters more than 5 millions..')
         sys.exit()
 
-def train_model(model, criterion, optimizer, scheduler, device,  num_epochs=25):
+def train_model(model, criterion, optimizer, scheduler, device, num_epochs=25):
     since = time.time()
 
     best_model_wts = copy.deepcopy(model.state_dict())
@@ -28,80 +29,64 @@ def train_model(model, criterion, optimizer, scheduler, device,  num_epochs=25):
 
     for epoch in range(num_epochs):
         print('-' * 50)
-        print('Epoch {}/{}'.format(epoch + 1, num_epochs))
+        print(f'Epoch {epoch + 1}/{num_epochs}')
 
-        # Each epoch has a training and validation phase
         for phase in ['train', 'val']:
             if phase == 'train':
-                model.train()  # Set model to training mode
+                model.train()
+                dataloader = train_loader
             else:
-                model.eval()   # Set model to evaluate mode
+                model.eval()
+                dataloader = val_loader
 
             running_loss = 0.0
             running_corrects = 0
 
-            # Iterate over data batches
-            for inputs, labels in train_loader:
-                inputs = inputs.to(device)
-                labels = labels.to(device)
+            for inputs, labels in dataloader:
+                inputs, labels = inputs.to(device), labels.to(device)
 
-                # zero the parameter gradients
                 optimizer.zero_grad()
-
-                # forward
-                # track history if only in train
                 with torch.set_grad_enabled(phase == 'train'):
                     outputs = model(inputs)
                     _, preds = torch.max(outputs, 1)
                     loss = criterion(outputs, labels)
 
-                    # backward + optimize only if in training phase
                     if phase == 'train':
                         loss.backward()
                         optimizer.step()
 
-                # statistics
                 running_loss += loss.item() * inputs.size(0)
                 running_corrects += torch.sum(preds == labels.data)
 
+            epoch_loss = running_loss / len(dataloader.dataset)
+            epoch_acc = running_corrects.double() / len(dataloader.dataset)
+
+            print(f'{phase} Loss: {epoch_loss:.4f} Acc: {epoch_acc:.4f}')
+
             if phase == 'train':
+                epoch_lst.append(epoch)
+                trn_loss_lst.append(round(epoch_loss, 4))
+                trn_acc_lst.append(round(epoch_acc.cpu().item (), 4))
                 scheduler.step()
+            else:
+                val_loss_lst.append(round(epoch_loss, 4))
+                val_acc_lst.append(round(epoch_acc.cpu().item(), 4))
 
-            epoch_acc = running_corrects.double() / len(train_data)
-            epoch_loss = running_loss / len(train_data)
+                if epoch_acc > best_acc:
+                    best_acc = epoch_acc
+                    torch.save(model.state_dict(), 'model_best.pt')
+                    best_model_wts = copy.deepcopy(model.state_dict())
 
-            print('{} Loss: {:.4f} Acc: {:.4f}'.format(phase, epoch_loss, epoch_acc))
-
-            # save training val metadata metrics
-            if phase == 'train':
-
-              epoch_lst.append(epoch)
-              trn_loss_lst.append(np.round(epoch_loss,4 ))
-              trn_acc_lst.append(np.round(epoch_acc.cpu().item(),4 ))
-
-            elif phase == 'val':
-              val_loss_lst.append(np.round(epoch_loss, 4))
-              val_acc_lst.append(np.round(epoch_acc.cpu().item(), 4))
-
-            # deep copy the model
-            if phase == 'val' and epoch_acc > best_acc:
-                best_acc = epoch_acc
-                torch.save(model.state_dict(), 'model_best.pt')
-                best_model_wts = copy.deepcopy(model.state_dict())
-
-            torch.save(model.state_dict(),'model_latest.pt')
-
-    trn_metadata = [trn_loss_lst, trn_acc_lst]
-    val_metadata = [val_loss_lst, val_acc_lst]
+            torch.save(model.state_dict(), 'model_latest.pt')
 
     time_elapsed = time.time() - since
-    print('Training complete in {:.0f}m {:.0f}s'.format(
-        time_elapsed // 60, time_elapsed % 60))
-    print('Best val Acc: {:4f}'.format(best_acc))
+    print(f'Training complete in {time_elapsed // 60:.0f}m {time_elapsed % 60:.0f}s')
+    print(f'Best val Acc: {best_acc:.4f}')
 
-    # load best model weights
     model.load_state_dict(best_model_wts)
-    return model, epoch_lst, trn_metadata, val_metadata
+    return model, epoch_lst, [trn_loss_lst, trn_acc_lst], [val_loss_lst, val_acc_lst]
+
+
 
 def evaluate(test_model, device):
     count = 0
@@ -109,7 +94,7 @@ def evaluate(test_model, device):
     preds = []
 
     # 저장경로는 변경하셔도 됩니다.
-    test_model.load_state_dict(torch.load('model_best.pt'))
+    test_model.load_state_dict(torch.load('model_latest.pt'))
     test_model.to(device)  # 모델을 GPU로 이동
     test_model.eval()  # setting the model to evaluate mode
     for inputs, labels in test_loader:
