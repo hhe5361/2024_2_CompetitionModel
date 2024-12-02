@@ -1,25 +1,36 @@
-import sys
+# importing all the libraries we need
+from __future__ import print_function, division
 import numpy as np
+import matplotlib.pyplot as plt
+import sys
+import os
 import time
-import torch
-import copy
-import itertools
-from dataaug import train_loader, train_data, test_loader
+import random
 import pandas as pd
+import torch
+from torch import nn, cuda, optim
+from torchvision import models,transforms,datasets
+from torch.utils.data import DataLoader,random_split
+from PIL import Image
+import seaborn as sns
+import h5py
+from tensorflow.keras import utils
+from sklearn.model_selection import train_test_split, StratifiedShuffleSplit
+from torch.optim import lr_scheduler
+import copy
+from random import shuffle
+import torch.nn.functional as F
+import itertools
+from torch.autograd import Function
+import pywt
+from einops import rearrange
+from einops.layers.torch import Rearrange
 
-def checkParams(model):
-    pytorch_total_params = sum(p.numel() for p in model.parameters())
-    print(f"Number of parameters: {pytorch_total_params}")
-    if int(pytorch_total_params) > 5000000:
-        print('Your model has the number of parameters more than 5 millions..')
-        sys.exit()
-
-def train_model(model, criterion, optimizer, scheduler, device,  num_epochs=25):
+def train_model(model, criterion, optimizer, scheduler, train_loader, device, train_data, num_epochs=25):
     since = time.time()
 
     best_model_wts = copy.deepcopy(model.state_dict())
     best_acc = 0.0
-
     epoch_lst = []
     trn_loss_lst = []
     trn_acc_lst = []
@@ -30,12 +41,11 @@ def train_model(model, criterion, optimizer, scheduler, device,  num_epochs=25):
         print('-' * 50)
         print('Epoch {}/{}'.format(epoch + 1, num_epochs))
 
-        # Each epoch has a training and validation phase
         for phase in ['train', 'val']:
             if phase == 'train':
-                model.train()  # Set model to training mode
+                model.train()  
             else:
-                model.eval()   # Set model to evaluate mode
+                model.eval() 
 
             running_loss = 0.0
             running_corrects = 0
@@ -45,11 +55,9 @@ def train_model(model, criterion, optimizer, scheduler, device,  num_epochs=25):
                 inputs = inputs.to(device)
                 labels = labels.to(device)
 
-                # zero the parameter gradients
                 optimizer.zero_grad()
 
                 # forward
-                # track history if only in train
                 with torch.set_grad_enabled(phase == 'train'):
                     outputs = model(inputs)
                     _, preds = torch.max(outputs, 1)
@@ -74,22 +82,21 @@ def train_model(model, criterion, optimizer, scheduler, device,  num_epochs=25):
 
             # save training val metadata metrics
             if phase == 'train':
-
               epoch_lst.append(epoch)
               trn_loss_lst.append(np.round(epoch_loss,4 ))
-              trn_acc_lst.append(np.round(epoch_acc.cpu().item(),4 ))
+              trn_acc_lst.append(np.round(epoch_acc.cpu().item(), 4))
 
             elif phase == 'val':
-              val_loss_lst.append(np.round(epoch_loss, 4))
-              val_acc_lst.append(np.round(epoch_acc.cpu().item(), 4))
+            	val_loss_lst.append(np.round(epoch_loss, 4))
+            	val_acc_lst.append(np.round(epoch_acc.cpu().item(), 4))
 
             # deep copy the model
             if phase == 'val' and epoch_acc > best_acc:
                 best_acc = epoch_acc
-                torch.save(model.state_dict(), 'model_best.pt')
+                torch.save(model.state_dict(), 'googlebest.pt')
                 best_model_wts = copy.deepcopy(model.state_dict())
 
-            torch.save(model.state_dict(),'model_latest.pt')
+            torch.save(model.state_dict(),'googlelatest.pt')
 
     trn_metadata = [trn_loss_lst, trn_acc_lst]
     val_metadata = [val_loss_lst, val_acc_lst]
@@ -103,50 +110,44 @@ def train_model(model, criterion, optimizer, scheduler, device,  num_epochs=25):
     model.load_state_dict(best_model_wts)
     return model, epoch_lst, trn_metadata, val_metadata
 
-def evaluate(test_model, device):
-    count = 0
-    all_count = 0
-    preds = []
 
-    # 저장경로는 변경하셔도 됩니다.
-    test_model.load_state_dict(torch.load('model_best.pt'))
-    test_model.to(device)  # 모델을 GPU로 이동
-    test_model.eval()  # setting the model to evaluate mode
+# testing how good the model is
+def evaluate(criterion, test_loader, device, CompactGoogleNet):
+    test_model = CompactGoogleNet(num_classes=10).cuda()
+    test_model.eval()       # setting the model to evaluate mode
+    preds = []
+    gts = []
+    Category = []
+
+    #저장경로는 변경하셔도 됩니다.
+    test_model.load_state_dict(torch.load('googlebest.pt'))
+
     for inputs, labels in test_loader:
 
-        #아래는 제출 시 삭제해야 할 코드임.
         inputs = inputs.to(device)
-        labels = labels.to(device)  
-
         # predicting
         with torch.no_grad():
+
             outputs = test_model(inputs)
-            _, pred = torch.max(outputs, dim=1)  # 예측값
-            preds.append(pred.cpu())  # GPU -> CPU 이동 후 저장
+            _,pred = torch.max(outputs,dim=1)
+            preds.append(pred)
 
-            # 정확도 계산 -> 삭제해야 할 부분
-            count += (pred == labels).sum().item()
-        all_count += labels.size(0)  # 현재 배치의 샘플 수 추가
+    category = [t.cpu().numpy() for t in preds]
 
-    # 최종 정확도 출력 - 삭제 해야 할 부분
-    accuracy = count / all_count
-    print(f'Accuracy: {accuracy:.4f}')
-
-    # 예측값 저장
-    category = [t.numpy() for t in preds]
     t_category = list(itertools.chain(*category))
+
     Id = list(range(0, len(t_category)))
 
     prediction = {
-        'Id': Id,
-        'Category': t_category
+      'Id': Id,
+      'Category': t_category
     }
 
-    prediction_df = pd.DataFrame(prediction, columns=['Id', 'Category'])
+    prediction_df = pd.DataFrame(prediction, columns=['Id','Category'])
 
-    # 저장경로는 변경하셔도 됩니다.
-    prediction_df.to_csv('prediction.csv', index=False)
+    #저장경로는 변경하셔도 됩니다.
+    prediction_df.to_csv('googlenet.csv', index=False)
 
     print('Done!!')
-    return preds
 
+    return preds
