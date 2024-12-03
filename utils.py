@@ -94,7 +94,7 @@ def evaluate(test_model, device):
     preds = []
 
     # 저장경로는 변경하셔도 됩니다.
-    test_model.load_state_dict(torch.load('model_latest.pt'))
+    test_model.load_state_dict(torch.load('model_best.pt'))
     test_model.to(device)  # 모델을 GPU로 이동
     test_model.eval()  # setting the model to evaluate mode
     for inputs, labels in test_loader:

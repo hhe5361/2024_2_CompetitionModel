@@ -4,16 +4,19 @@ from torch import nn, optim
 from torch.optim import lr_scheduler
 from optimTarget import learning_rate, training_epochs, schedule_steps
 from utils import checkParams, train_model, evaluate
+import torchvision.models as models
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print(device)
 
-model_ft = EfficientNet.from_name("efficientnet-b0")
-test_model = EfficientNet.from_name("efficientnet-b0")
+model_ft = models.squeezenet1_0(weights=None)
+model_ft.classifier[-1] = nn.Conv2d(512, 10, kernel_size=1)
+model_ft.num_classes = 10
 
-num_ftrs = model_ft._fc.in_features
-model_ft._fc = nn.Linear(num_ftrs, 10)
-test_model._fc = nn.Linear(num_ftrs, 10)
+
+test_model = models.squeezenet1_0(weights=None)
+test_model.classifier[-1] = nn.Conv2d(512, 10, kernel_size=1)
+test_model.num_classes = 10
 
 model_ft= model_ft.cuda()
 test_model = test_model.cuda()
