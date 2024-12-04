@@ -18,6 +18,13 @@ random.seed(seed)
 train_transform = transforms.Compose([
     transforms.RandomHorizontalFlip(p=0.5),  # 50% 확률로 수평 뒤집기
     transforms.RandomVerticalFlip(p=0.5),    # 50% 확률로 수직 뒤집기
+    transforms.ColorJitter(
+        brightness=0.2,  # 밝기를 ±20% 조정
+        contrast=0.2,    # 대비를 ±20% 조정
+        saturation=0.2,  # 채도를 ±20% 조정
+        hue=0.1          # 색조를 ±10% 조정
+    ),
+    transforms.RandomGrayscale(p=0.1), 
     transforms.RandomRotation(degrees=15),   # ±15도 내에서 랜덤 회전
     transforms.ToTensor(),                   # 텐서로 변환
     transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),  # 정규화
