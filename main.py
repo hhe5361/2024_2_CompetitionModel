@@ -9,14 +9,14 @@ import torchvision.models as models
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print(device)
 
-model_ft = models.squeezenet1_0(weights=None)
-model_ft.classifier[-1] = nn.Conv2d(512, 10, kernel_size=1)
-model_ft.num_classes = 10
+model_ft = models.shufflenet_v2_x0_5(weights=None)
+model_ft.fc = nn.Linear(1024, 10, bias=True)
 
 
-test_model = models.squeezenet1_0(weights=None)
-test_model.classifier[-1] = nn.Conv2d(512, 10, kernel_size=1)
-test_model.num_classes = 10
+
+test_model = models.shufflenet_v2_x0_5(weights=None)
+test_model.fc = nn.Linear(1024, 10, bias=True)
+
 
 model_ft= model_ft.cuda()
 test_model = test_model.cuda()
